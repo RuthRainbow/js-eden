@@ -8,7 +8,8 @@
  Eden.plugins.ADM = function(context) {
 	var me = this;
 	
-	this.actionsList;
+	this.actionsList = new Array();
+	this.actionsBase;
 	
 	this.entities = new Array();
 	// Definition store:
@@ -133,26 +134,37 @@
 	
 	this.process = function() {
 		// Clear the actions list ready for new available actions.
-		me.actionsList.clear();
+		//me.actionsList.clear();
+		me.actionsList = [];
+		me.actionsList.length = 0;
+		/*me.actionsList = new Eden.plugins.ADM.ActionsList(
+			code_entry[0]
+		);*/
+	
 		
 		// List to store the actions we are processing this round.
 		var actions = new Array();
 
 		// First add the next sequential items from last round
 		var tmpQueue = [];
+		var miscList = new Eden.plugins.ADM.ActionsList(me.actionsBase, "misc");
 		for (x in me.queuedActions) {
 			var queueSplit = me.queuedActions[x].split(';');
 			var firstAction = queueSplit[0];
 			actions.push(firstAction);
 			queueSplit.splice(0, 1);
 			tmpQueue.push(queueSplit.join(';'));
-			me.actionsList.addAction(firstAction, actions.length - 1);
+			miscList.addAction(firstAction, actions.length - 1);
 		}
 		me.queuedActions = tmpQueue;
+		me.actionsList.push(miscList);
 		
 		// Find all actions to evaluate and add to the actions list:
 		for (x in me.entities) {
 			var entity = me.entities[x];
+			var nextActionsList = new Eden.plugins.ADM.ActionsList(
+				me.actionsBase, entity.name);
+
 			for (var j = 0; j < entity.actionsArr.length; j++) {
 				// The guard should be EDEN code! Execute it
 				var guardAction = entity.actionsArr[j];
@@ -170,9 +182,10 @@
 	
 					// Add action to selectable list of potential actions this step:
 					// TODO make these clickable!
-					me.actionsList.addAction(firstAction, actions.length - 1);
+					nextActionsList.addAction(firstAction, actions.length - 1);
 				}
 			}
+			me.actionsList.push(nextActionsList);
 		}
 	};
 	
@@ -278,10 +291,11 @@
 				minHeight: 200,
 				minWidth: 360
 			});
-			
-		me.actionsList = new Eden.plugins.ADM.ActionsList(
+		me.actionsBase = code_entry[0];
+		me.actionsList = {};
+		/*me.actionsList = new Eden.plugins.ADM.ActionsList(
 			code_entry[0]
-		);
+		);*/
 	};
 	
 	context.views["AdmInput"] = {
@@ -295,9 +309,10 @@
 	};
 };
  
- Eden.plugins.ADM.ActionsList = function(element) {
+Eden.plugins.ADM.ActionsList = function(element, name) {
 	this.actionresults = element;
 	this.actions = {};
+	this.name = name;
 }
 
 Eden.plugins.ADM.ActionsList.prototype.addAction = function(action, index) {
@@ -308,7 +323,9 @@ Eden.plugins.ADM.ActionsList.prototype.addAction = function(action, index) {
 
 Eden.plugins.ADM.ActionsList.prototype.clear = function() {
 	this.actions.length = 0;
-        document.getElementById("human-perspective").innerHTML = "";
+        //document.getElementById("human-perspective").appendChild(
+	//	 "<div id=human-"+this.name+"><label>"+this.name+"</label></div>");
+	//this.element.html("div id=human-"+this.name+"><label>"+this.name+"</label></div>");
 }
 
 Eden.plugins.ADM.Action = function(action) {
@@ -336,7 +353,7 @@ Eden.plugins.ADM.Action.prototype.updateAction = function() {
 
 	var namehtml = "<span class=\"hasdef_text\" title=\""
 		+ this.action
-		+"\">"+this.action+"</span>";
+		+"\">"+this.name+": "+this.action+"</span>";
 
 	this.element.html("<li class=\"type-function\"><span class=\"result_name\">"
 		+ namehtml
